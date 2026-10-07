@@ -1,0 +1,17 @@
+# 密钥和登录信息 —— 永远不要提交 / secrets, never commit these
+.env
+cookies.txt
+
+# 运行时产生的文件 / files the bot creates while running
+*.db
+*.db-wal
+*.db-shm
+*.log
+*.log.*
+last_loot_ids.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
