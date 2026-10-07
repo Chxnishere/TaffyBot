@@ -202,6 +202,9 @@ YouTube 和 B站经常拒绝没有登录状态的请求，所以放歌功能需�
 
 人设就是三个 Markdown 文件：`persona.md`、`distillation.md`、`self-reference.md`。Discord 版放在 `discord/` 下，KOOK 版放在 `kook/skills/` 下。改掉里面的内容再重启，机器人就换了性格。
 
+## AI 使用说明
+这个项目的一部分代码和文档是借助 AI 工具写的，发布前由作者检查&测试过。
+
 ## 致谢
 
 - 人设文件来自 [ly-xxx/ace-taffy-skill](https://github.com/ly-xxx/ace-taffy-skill)（MIT 许可），许可声明见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
