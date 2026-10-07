@@ -95,9 +95,8 @@ def setup(bot: Bot):
 
     @bot.command(name='poll')
     async def poll_cmd(msg: Message, *args):
-        """Discord 版是三个独立参数，KOOK 按空格切词。
-
-        带空格的问题/选项请用引号包起来，这里用 shlex 重新解析一次原始内容。
+        """KOOK 按空格切词：带空格的问题/选项请用引号包起来，
+        这里用 shlex 重新解析一次原始内容。
         """
         raw = msg.content.strip()
         # 去掉命令本身

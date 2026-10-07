@@ -1,14 +1,12 @@
 """SQLite 持久化层。
 
-和 Discord 版相比有三处改动：
-
-1. 所有 id 列改成 TEXT。KOOK 的 id 是字符串，塞进 INTEGER 列不会报错，
+1. 所有 id 列都是 TEXT。KOOK 的 id 是字符串，塞进 INTEGER 列不会报错，
    但 `WHERE user_id=?` 拿字符串去比对整数在 SQLite 里匹配不上，
    会变成"提醒能触发但查不出也取消不掉"这种很难查的故障。
-2. 加了一把 threading.Lock。sqlite3 用了 check_same_thread=False，
+2. 访问数据库都过一把 threading.Lock。sqlite3 用了 check_same_thread=False，
    而这个项目里 yt-dlp 跑在 asyncio.to_thread 里，将来有人在线程里写库就会撞车。
-3. 多了 parties / polls 两张表，KOOK 的按钮天然带 value，
-   重启后按钮还能用，顺手把组队和投票也做成持久的。
+3. parties / polls 两张表让组队和投票是持久的：KOOK 的按钮天然带 value，
+   重启后按钮还能用。
 """
 import json
 import logging

@@ -1,6 +1,4 @@
-"""歌曲解析和搜索。这一整个文件和聊天平台无关，从 Discord 版原样搬过来的，
-只把写死的相对路径换成了 config 里的绝对路径。
-"""
+"""歌曲解析和搜索。这个文件和聊天平台无关。"""
 import html
 import logging
 import os
@@ -18,7 +16,7 @@ from config import BROWSER_UA, COOKIE_PATH, PLAY_ALLOWED_HOSTS, SEARCH_LIMIT
 logger = logging.getLogger(__name__)
 
 # yt-dlp 每次解析完都会把 cookies.txt 整个重写一遍。
-# 两个解析同时跑、或者一边写一边读，读到的就是半个文件（实测并发时 25% 的读取不完整）。
+# 两个解析同时跑、或者一边写一边读，读到的就是半个文件。
 # 所以所有碰 cookies.txt 的地方都排这一把锁；用 RLock 是因为解析过程中还会回头读 cookie。
 _ytdl_lock = threading.RLock()
 
@@ -42,9 +40,8 @@ def check_play_url(query: str):
 BILI_SEARCH_URL = "https://api.bilibili.com/x/web-interface/search/type"
 
 # 取流时用的基础请求头。注意这里**不要**写死 Referer：
-# 以前的版本无论什么站都回落到 B 站的 Referer，结果把 B 站的 Referer
-# 和整份 cookies.txt（含 B 站登录态）一起发给了 googlevideo，
-# YouTube 于是返回一坨不是音频的东西，ffmpeg 报 Invalid data found。
+# 把 B 站的 Referer 和 cookie 发给 googlevideo 的话，
+# YouTube 会返回一坨不是音频的东西，ffmpeg 报 Invalid data found。
 BASE_HEADERS = {
     'User-Agent': BROWSER_UA,
     'Accept': '*/*',
@@ -168,7 +165,7 @@ def get_song_data(query: str) -> dict:
         'max_sleep_interval': 10,
         'geo_bypass': True,
         'source_address': '0.0.0.0',
-        # 正确的 key 是 http_headers；原来写的 'headers' yt-dlp 根本不认
+        # key 必须是 http_headers，写成 'headers' yt-dlp 不认
         'http_headers': {'User-Agent': BROWSER_UA},
         'age_limit': 0,
     }

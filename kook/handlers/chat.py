@@ -1,14 +1,11 @@
 """AI 聊天：关键词触发、被 @ 回复、随机插嘴、私聊。
 
-对应 Discord 版的 on_message。主要差别：
-
-1. 提及：Discord 是 `bot.user in message.mentions` + 把 `<@id>` 替换掉；
-   KOOK 是 msg.extra['mention'] 里的 id 列表 + `(met)id(met)` 正则。
+1. 提及：msg.extra['mention'] 里的 id 列表 + `(met)id(met)` 正则。
 2. 私聊：KOOK 的私信是独立的 PrivateMessage，不是 channel 的一个变体，
    所以两个入口共用同一个 _respond。
 3. 没有 typing 指示器。人设文件里本来就写了"先丢一句很短的过程提示"，
    这里就用一条占位消息代替，在中国网络下等 Gemini 时也更友好。
-4. 长度上限 1900 是 Discord 的数字，换成 config.MAX_REPLY_CHARS。
+4. 回复长度上限是 config.MAX_REPLY_CHARS。
 """
 import logging
 import random
@@ -151,8 +148,7 @@ async def _respond(bot, msg, is_mentioned: bool):
     msg_id = (placeholder or {}).get('msg_id') if isinstance(placeholder, dict) else None
     if msg_id:
         from khl import api
-        # 私信的消息要走 direct-message 那一套接口，用频道的 message/update 改不动，
-        # 以前私聊里占位消息永远改不掉，每次都是"你别急喵"+ 另一条回复。
+        # 私信的消息要走 direct-message 那一套接口，用频道的 message/update 改不动。
         endpoint = api.DirectMessage if isinstance(msg, PrivateMessage) else api.Message
         try:
             await bot.client.gate.exec_req(endpoint.update(msg_id=msg_id, content=reply_text))
@@ -189,7 +185,7 @@ def setup(bot: Bot):
             mentions = (getattr(msg, 'extra', {}) or {}).get('mention') or []
             is_mentioned = _bot_id in [str(m) for m in mentions]
 
-            # 关键词触发，和 Discord 版一模一样
+            # 关键词触发
             if not is_mentioned:
                 if "死" in msg.content:
                     await msg.reply("好似喵！(΄◞ิ౪◟ิ‵)")

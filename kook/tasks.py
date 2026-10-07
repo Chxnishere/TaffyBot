@@ -1,9 +1,8 @@
 """定时任务。
 
-discord.ext.tasks 没了，换成 khl.py 自带的 bot.task（底下是 APScheduler）：
-  @tasks.loop(time=DEAL_TIME)    -> @bot.task.add_cron(hour=..., minute=..., timezone=CST)
-  @tasks.loop(seconds=30)        -> @bot.task.add_interval(seconds=30)
-  @tasks.loop(minutes=30)        -> @bot.task.add_interval(minutes=30)
+用 khl.py 自带的 bot.task（底下是 APScheduler）：
+  每天定点 -> @bot.task.add_cron(hour=..., minute=..., timezone=CST)
+  固定间隔 -> @bot.task.add_interval(seconds=...) / add_interval(minutes=...)
 
 每个任务体都包了 try/except：CheapShark 抽风不该让明天的播报也一起停。
 """
@@ -78,9 +77,7 @@ def setup(bot, bot_user_id_getter):
             text, posted_count = cards.deal_broadcast_text(top, MAX_REPLY_CHARS)
             await send_text(bot, LOOT_ID, text)
 
-            # 只记真正播出去的那几条。
-            # Discord 版这里是 mark_deals_posted(top)，被长度截掉的那些
-            # 会被永久标记成已播报，以后再也不会出现。
+            # 只记真正播出去的那几条，被长度截掉的留到下次。
             try:
                 mark_deals_posted(top[:posted_count])
             except Exception as e:
@@ -156,8 +153,7 @@ def setup(bot, bot_user_id_getter):
             logger.error(f"清理折扣记录失败: {e}")
 
     # ---------------- 语音闲置检查，每 90 秒 ----------------
-    # Discord 版是 60 秒，而且 vc.channel.members 是本地缓存、不花钱。
-    # KOOK 这边每个活跃 player 每轮都要打一次 API，所以放慢一点。
+    # 每个活跃 player 每轮都要打一次 API，所以别查得太勤。
     @bot.task.add_interval(seconds=90)
     async def idle_disconnect():
         bot_user_id = bot_user_id_getter()

@@ -1,12 +1,9 @@
 """/party 和它的按钮。
 
-和 Discord 版最大的结构差别：没有 PartyView 这种自带回调的对象。
 KOOK 只给一个全局的 message_btn_click 事件，带上按钮里写死的 value。
 所以 value 写成 `party:toggle:<party_id>`，在 common.dispatch_button 里按前缀路由。
 
-顺带修了 Discord 版的一个问题：那边 PartyView 写了 timeout=None 和 custom_id，
-看起来像持久化视图，但从没调过 bot.add_view，parties 又是内存字典，
-重启后每个组队卡片的按钮都是死的。这里状态落在 SQLite，重启照样能点。
+状态落在 SQLite，重启后组队卡片的按钮照样能点。
 """
 import asyncio
 import logging
@@ -170,10 +167,7 @@ def setup(bot: Bot):
 
     @bot.command(name='party')
     async def party(msg: Message, *args):
-        """Discord 版签名是 (game: str, max_members: int = 0)。
-
-        KOOK 按空格切词，约定：最后一个 token 如果是纯数字就当人数上限。
-        """
+        """KOOK 按空格切词，约定：最后一个 token 如果是纯数字就当人数上限。"""
         if not args:
             await msg.reply("要开什么游戏的房呀喵？用法：`/party 元神 4`", is_temp=True)
             return

@@ -1,32 +1,18 @@
 """KOOK 语音播放。
 
-为什么不用 kookvoice 的 Player
-------------------------------
-kookvoice 的推流是两个 ffmpeg 串起来的：
-  p2 = ffmpeg 解码歌曲 -> PCM  （没有 -re，能多快解多快）
-  p  = ffmpeg 读 PCM  -> RTP  （有 -re，按真实速度消费）
-
-它的循环里写数据用的是 `p.stdin.write(...)`，**没有 await drain()**。
-于是整首歌的 PCM 会在一瞬间全塞进 asyncio 的发送缓冲区，循环立刻跑完，
-它就认为"放完了"，马上 `p.kill()` 并断开语音。
-可 p 因为 -re 还在慢慢往外发，缓冲区里没发出去的部分全被丢掉。
-
-源站慢的时候解码被网速拖住，这个 bug 会被掩盖。
-而我们的本地取流中转一秒就能把整首歌喂完，于是必然触发：
-机器人进语音 -> 推了不到一秒 -> 直接退出。
-
-所以这里自己实现，但保留它"推流进程常驻"的正确部分：
+推流由两个 ffmpeg 接力：
 
   常驻 p_rtp : ffmpeg -re -f s16le -i pipe:0 -> RTP   （整个语音会话只起一次）
   每首 p_dec : ffmpeg -i <中转地址>        -> s16le PCM
 
-两者之间由我们自己搬字节，并且**每写一块就 await drain()**。
-drain 提供了背压：RTP 那边因为 -re 只按真实速度消费，
-写入就会自然被卡住，绝不会跑到它前面去——这正是 kookvoice 缺的那一行。
+两者之间由我们自己搬字节，并且每写一块就 await drain()。
+drain 提供了背压：RTP 那边因为 -re 只按真实速度消费，写入会自然被卡住。
+不 drain 的话整首歌的 PCM 会瞬间塞进发送缓冲区，循环立刻跑完，
+看起来像"放完了"，实际上大部分还没发出去。
 
-推流进程常驻这件事不能省：RTP 的序列号和时间戳必须连续。
+推流进程必须常驻：RTP 的序列号和时间戳要连续。
 一首歌换一个 ffmpeg 的话，第二首会以同一个 SSRC 重新从随机序列号开始，
-KOOK 的抖动缓冲会把它当成乱序包全部丢掉——现象就是第一首正常、
+KOOK 的抖动缓冲会把它当成乱序包全部丢掉，现象就是第一首正常、
 之后每一首都是静音。
 """
 import asyncio
@@ -39,9 +25,7 @@ import aiohttp
 
 from config import FFMPEG_BIN, IDLE_TIMEOUT
 
-# 音质相关的三个设置是后来才加进 config.py 的。
-# 只更新了 player.py 没更新 config.py 的话，硬 import 会让整个 bot 起不来，
-# 而这几个只是可选旋钮，有默认值就能跑——所以这里退回读环境变量，
+# 这三个只是可选旋钮：config.py 里没有的话退回读环境变量，
 # 同时明确提醒一句，不要让它悄悄变成"配置改了不生效"。
 try:
     from config import VOICE_BITRATE, VOICE_MONO_BELOW, VOICE_VOLUME
@@ -66,7 +50,7 @@ _players = {}
 
 
 class VoiceAPI:
-    """KOOK 语音频道的三个接口，直接打，不依赖 kookvoice。"""
+    """KOOK 语音频道的三个接口，直接调 HTTP API。"""
 
     def __init__(self, token: str):
         self._headers = {'Authorization': f'Bot {token}'}
@@ -187,7 +171,7 @@ class GuildPlayer:
                 relay.forget(url.rsplit('/', 1)[-1])
 
     async def _report(self, text: str):
-        """把播放失败告诉文字频道。以前只写日志，用户那边就是"说了在放却没声音"。"""
+        """把播放失败告诉文字频道，不然用户那边就是"说了在放却没声音"。"""
         if self.on_error is None:
             return
         try:
@@ -200,8 +184,7 @@ class GuildPlayer:
 
         解码进程读完不等于听众听完：推流进程带 -re 按真实速度往外发，
         我们这边的写缓冲、管道、ffmpeg 自己的输入缓冲里还压着大约 1 秒的 PCM。
-        以前解码一结束就直接 kill 推流进程，最后一首歌的结尾就被切掉了
-        （实测 8 秒的队列只发出去 7.26 秒）。
+        这时直接 kill 推流进程，最后一首歌的结尾会被切掉。
         补静音并 drain：写得进去就说明前面真正的音乐已经被消费掉了，
         最后被切掉的只会是这段静音。
         不用"关 stdin 等它自己退出"的办法，是因为这期间可能有新歌进队列，
@@ -249,7 +232,6 @@ class GuildPlayer:
 
         rtp_url = f"rtp://{info['ip']}:{info['port']}?rtcpport={info['rtcp_port']}"
         # KOOK 给这个频道分配的码率就是音质上限。
-        # 原来这里还照抄了 kookvoice 的 *0.9，白白又砍一成，没有理由。
         bitrate = VOICE_BITRATE or int(info.get('bitrate', 96000) / 1000)
 
         channels = 1 if (VOICE_MONO_BELOW and bitrate < VOICE_MONO_BELOW) else 2
@@ -364,7 +346,7 @@ class GuildPlayer:
         return self._rtp
 
     async def _watch_rtp(self, proc):
-        """推流进程的 stderr 一定要看着，kookvoice 把它扔进了 /dev/null。"""
+        """盯着推流进程的 stderr，异常退出时把原因记进日志。"""
         try:
             err = await proc.stderr.read()
             rc = await proc.wait()
@@ -401,8 +383,7 @@ class GuildPlayer:
                     break
                 rtp.stdin.write(chunk)
                 # 关键的一行：等推流进程真的收下了再继续。
-                # 没有它就会像 kookvoice 那样，把整首歌塞进缓冲区
-                # 然后以为放完了。
+                # 没有它整首歌会瞬间塞进缓冲区，然后被当成放完了。
                 await rtp.stdin.drain()
         except (BrokenPipeError, ConnectionResetError) as e:
             logger.error(f"写入推流进程失败: {e}")

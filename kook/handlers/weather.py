@@ -15,9 +15,7 @@ def setup(bot: Bot):
 
     @bot.command(name='sky')
     async def sky(msg: Message, *args):
-        """Discord 版是 (city: str, country: str = "") 两个有类型的参数。
-
-        KOOK 按空格切词，所以约定：最后一个 token 如果看着像国家代码
+        """KOOK 按空格切词，所以约定：最后一个 token 如果看着像国家代码
         （2 个字母），就当国家，其余都算城市名。
         """
         if not args:

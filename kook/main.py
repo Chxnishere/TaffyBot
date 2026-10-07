@@ -1,11 +1,7 @@
 """塔菲 KOOK 版入口。
 
-和 Discord 版 on_ready 的差别：
-- 指令同步那一整块删掉了。KOOK 没有 application command，
-  指令在定义时就注册好了，不需要 sync，也不需要 GUILD_ID。
-- Cog 加载换成各 handler 模块的 setup(bot)，而且要在 bot.run() 之前跑完，
-  khl.py 是定义即注册，不是连上之后再注册。
-- 健康报告留着，它是确认移植有没有落地的最快方式。
+khl.py 是定义即注册：各 handler 模块的 setup(bot) 要在 bot.run() 之前跑完，
+不需要另外同步指令。
 """
 import asyncio
 import fcntl
@@ -28,7 +24,7 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S',
 )
 logger = logging.getLogger(__name__)
-# 移植期间想看连线细节就把下面这行改成 DEBUG
+# 想看连线细节就把下面这行改成 DEBUG
 logging.getLogger('khl').setLevel(logging.WARNING)
 logging.getLogger('apscheduler').setLevel(logging.WARNING)
 

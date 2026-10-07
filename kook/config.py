@@ -1,8 +1,4 @@
-"""集中配置：环境变量、常量、路径。
-
-Discord 版把这些散在 main.py 各处，KOOK 版全部收到这里，
-移植时只要改这一个文件就能换服务器 / 换频道。
-"""
+"""集中配置：环境变量、常量、路径。"""
 import os
 from datetime import timezone, timedelta
 from pathlib import Path
@@ -23,8 +19,7 @@ GENERAL_ID = os.getenv('GENERAL_ID')
 LOOT_ID = os.getenv('LOOT_ID')
 
 # ---------- 路径 ----------
-# 全部用绝对路径。Discord 版有一半还在用相对路径，
-# 从别的目录启动就会找不到 cookies / 人设文件。
+# 全部用绝对路径，从别的目录启动也能找到 cookies / 人设文件。
 DB_PATH = os.getenv('DB_PATH') or str(BASE_DIR / 'taffybot.db')
 COOKIE_PATH = os.getenv('COOKIE_PATH') or str(BASE_DIR / 'cookies.txt')
 FFMPEG_LOG_PATH = str(BASE_DIR / 'ffmpeg_debug.log')
@@ -47,7 +42,7 @@ URL_REFRESH_AFTER = 1800      # 直链超过这个秒数就重新解析
 SEARCH_LIMIT = 5
 FFMPEG_LOG_MAX_BYTES = 10 * 1024 * 1024
 
-# KOOK 的消息长度上限和 Discord 不同，单独抽出来方便调
+# KOOK 的消息长度上限，单独抽出来方便调
 MAX_REPLY_CHARS = 4500
 
 # ---------- 数据保留 ----------
@@ -55,8 +50,7 @@ DEAL_HISTORY_DAYS = 30
 MAX_REMINDER_SECONDS = 365 * 24 * 3600
 
 # ---------- 本地取流中转 ----------
-# kookvoice 调 ffmpeg 时写死了 `-i "{file}"`，没有地方塞自定义 header，
-# 而 B 站的 CDN 不带 Referer 会直接 403。
+# B 站的 CDN 不带 Referer 会直接 403。
 # 所以在 127.0.0.1 上开一个小服务，由它带着正确的 header 去取流，
 # 再把字节转给 ffmpeg。详见 voice/relay.py。
 RELAY_HOST = '127.0.0.1'
@@ -68,9 +62,7 @@ BROWSER_UA = (
 )
 
 # ---------- 音质 ----------
-# 音量倍率。kookvoice 原来写死 volume=0.4，等于先把音量砍掉六成，
-# 听众只能把系统音量拉上去，结果把底噪和压缩失真一起放大了。
-# 1.0 = 原样输出。觉得吵可以调到 0.7~0.8。
+# 音量倍率。1.0 = 原样输出，觉得吵可以调到 0.7~0.8。
 VOICE_VOLUME = float(os.getenv('VOICE_VOLUME', '1.0'))
 
 # 码率。0 = 用 KOOK 给频道分配的值（推荐）。

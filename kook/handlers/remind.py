@@ -1,7 +1,6 @@
 """/remind /reminders /cancelreminder
 
-这三个是整个移植里最顺的：KOOK 的位置参数刚好就是
-「第一个 token 是时间，剩下全是内容」，连 rest() 都不太需要。
+/remind 的第一个 token 是时间，剩下全是内容。
 """
 import logging
 from datetime import datetime

@@ -1,11 +1,7 @@
 """各 handler 共用的小工具。
 
-Discord 的 interaction 模型在这里整个消失了：
-  interaction.response.defer()          -> 直接删掉，KOOK 没有 3 秒 ack 窗口
-  interaction.response.send_message(x)  -> await msg.reply(x)
-  interaction.followup.send(x)          -> await msg.reply(x)
-  ephemeral=True                        -> is_temp=True（只有发起者看得见）
-  interaction.response.edit_message()   -> update_card(bot, msg_id, card)
+回复用 msg.reply(x)，只给发起者看的加 is_temp=True，
+就地改卡片用 update_card(bot, msg_id, card)。
 """
 import io
 import json
@@ -154,7 +150,7 @@ async def send_text(bot, channel_id: str, text: str, temp_target_id: str = '',
 
 
 async def update_card(bot, msg_id: str, card):
-    """就地改一条卡片消息，等价于 Discord 的 interaction.response.edit_message。"""
+    """就地改一条卡片消息。"""
     return await bot.client.gate.exec_req(api.Message.update(
         msg_id=str(msg_id),
         content=json.dumps(card, ensure_ascii=False),
@@ -213,8 +209,7 @@ async def upload_external(bot, url: str):
 async def find_user_voice_channel(bot, guild_id: str, user_id: str):
     """用户当前在哪个语音频道。
 
-    Discord 是 interaction.user.voice.channel，本地缓存直接读。
-    KOOK 没有这个缓存，要打一次 API。
+    KOOK 没有本地缓存，要打一次 API。
     """
     try:
         data = await bot.client.gate.exec_req(api.ChannelUser.getJoinedChannel(
@@ -231,11 +226,10 @@ async def find_user_voice_channel(bot, guild_id: str, user_id: str):
 async def voice_channel_humans(bot, channel_id: str, bot_user_id: str):
     """语音频道里除了机器人还有几个人。查不出来返回 None。
 
-    Discord 是 vc.channel.members，本地就有；KOOK 每次都要打 API，
-    所以 idle 检查的轮询间隔别设太短。
+    KOOK 每次都要打 API，所以 idle 检查的轮询间隔别设太短。
 
-    "查不出来"和"0 个人"必须分开：以前接口一抖就返回 0，
-    塔菲会在有人听歌的时候说一句"语音频道没人了"然后退出。
+    "查不出来"和"0 个人"必须分开：混在一起的话接口一抖，
+    塔菲就会在有人听歌的时候说一句"语音频道没人了"然后退出。
     """
     try:
         data = await bot.client.gate.exec_req(api.Channel.userList(channel_id=str(channel_id)))

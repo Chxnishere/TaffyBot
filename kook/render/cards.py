@@ -1,14 +1,13 @@
-"""所有卡片构造。Discord 版的 discord.Embed 全部在这里变成 KOOK CardMessage。
+"""所有卡片构造（KOOK CardMessage）。
 
-对应关系（移植时的速查表）：
-  embed.title                -> Module.Header（纯文本，不吃 markdown）
-  embed.description          -> Module.Section(Element.Text(kmarkdown))
-  add_field(inline=False)    -> 再来一个 Module.Section
-  add_field(inline=True) x3  -> kv() 渲染成每行 `**标签**：值`
-                                （不要用 Struct.Paragraph，cols 在移动端会被忽略）
-  set_thumbnail              -> Section 的 accessory=Element.Image + mode=right
-  set_footer                 -> Module.Context
-  color=discord.Color.x()    -> Card(theme=Types.Theme.X)
+版式约定：
+- 标题：Module.Header（纯文本，不吃 markdown）
+- 正文：Module.Section(Element.Text(kmarkdown))，每段一个 Section
+- 并排的几个字段：kv() 渲染成每行 `**标签**：值`
+  （不要用 Struct.Paragraph，cols 在移动端会被忽略）
+- 缩略图：Section 的 accessory=Element.Image + mode=right
+- 页脚：Module.Context
+- 颜色：Card(theme=Types.Theme.X)
 
 注意 KOOK 的卡片不会渲染外站图片，除非先上传到 KOOK 的资源服务器。
 头像和 KOOK 自己的图是本来就在 KOOK 上的，可以直接引用；
@@ -33,15 +32,14 @@ MAX_HEADER_CHARS = 100
 def kv(*pairs) -> str:
     """把 (标签, 值) 渲染成每行一条的 `**标签**：值`。
 
-    本来这里用的是 Struct.Paragraph(cols=3)，但官方文档写得很清楚：
-    paragraph 的 cols "移动端忽略该参数"。
-    于是手机上三栏会摊平成一串——先是三个标签，再是三个值，
-    完全对不上号。kmarkdown 每行一条在所有端上都一样。
+    不用 Struct.Paragraph(cols=3)：官方文档写明 paragraph 的 cols
+    "移动端忽略该参数"，手机上三栏会摊平成一串，标签和值对不上号。
+    kmarkdown 每行一条在所有端上都一样。
     """
     return "\n".join(f"**{k}**：{v}" for k, v in pairs)
 
 
-# 状态 -> 主题色，对应 Discord 版的 green / gold / red
+# 状态 -> 主题色
 STATUS_THEME = {
     "招募中": Types.Theme.SUCCESS,
     "已满员": Types.Theme.WARNING,
@@ -50,7 +48,7 @@ STATUS_THEME = {
 
 
 def _mention(user_id: str) -> str:
-    """KOOK 的 @ 语法。Discord 是 <@id>，这里是 (met)id(met)。"""
+    """KOOK 的 @ 语法：(met)id(met)。"""
     return f"(met){user_id}(met)"
 
 
@@ -77,7 +75,7 @@ def deal_card(deal: dict, index: int = None) -> Card:
 
     card = Card(theme=Types.Theme.SUCCESS)
     card.append(Module.Header(title[:100]))
-    # Discord 版把链接挂在 embed.url 上，KOOK 没有这个位置，写进正文
+    # KOOK 的卡片标题挂不了链接，写进正文
     desc = f"🛒 **{store_name}**"
     if link:
         desc += f"  ·  [前往购买]({link})"
@@ -127,8 +125,8 @@ def deal_broadcast_text(deals: list, limit_chars: int) -> tuple:
     """每日播报用纯文本，不用卡片：一次 25 条堆卡片太长。
 
     返回 (文本, 实际放进去的条数)。
-    Discord 版这里有个 bug：按长度截断了但把整批都标记成已播报，
-    被截掉的那些以后永远不会再播。所以这里把真实条数也返回出去。
+    条数要一起返回：调用方只该把真正播出去的那几条标记成已播报，
+    被长度截掉的留到下次。
     """
     header = "(met)all(met) 🎮 **今日优质游戏折扣速报！**"
     tail = "...（更多请使用 /hotdeals 查看喵！）"
@@ -251,11 +249,7 @@ def poll_card(poll: dict) -> CardMessage:
 # ---------------- 搜索 ----------------
 
 def search_card(search_id: str, platform_label: str, query: str, results: list) -> CardMessage:
-    """Discord 版是下拉选单，KOOK 卡片没有 select，改成一排编号按钮。
-
-    正文把 5 条结果完整列出来，其实比原来的下拉更好读：
-    下拉的 label/description 都被截到 95 字。
-    """
+    """搜索结果卡片：正文把结果完整列出来，下面一排编号按钮（KOOK 卡片没有 select）。"""
     card = Card(theme=Types.Theme.PRIMARY)
     card.append(Module.Header(f"🔍 {platform_label} 搜索：{query}"[:100]))
     card.append(Module.Section(Element.Text("60 秒内点下面的编号，塔菲就去放喵～", Types.Text.KMD)))

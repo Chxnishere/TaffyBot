@@ -1,14 +1,13 @@
 """组队房间的状态机。
 
-Discord 版里 PartySession 同时抱着 message 和 view 两个 Discord 对象，
-这里把它们摘掉了：这个文件只管"谁在队里、满没满、关没关"，
+这个文件只管"谁在队里、满没满、关没关"，
 渲染和消息 id 交给 handlers/party.py。
 """
 import asyncio
 import uuid
 from datetime import datetime
 
-PARTY_TIMEOUT = 60  # 秒，和 Discord 版保持一致
+PARTY_TIMEOUT = 60  # 秒
 
 
 class PartySession:

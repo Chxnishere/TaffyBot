@@ -1,29 +1,14 @@
 """本地取流中转。
 
-为什么需要它
-------------
-Discord 版是这样放歌的：
+B 站的 CDN 直链不带 Referer 会直接 403，取流时必须带上对应站点的请求头。
 
-    discord.FFmpegPCMAudio(url, before_options='-headers "Referer: ..."')
-
-B 站的 CDN 直链不带 Referer 会直接 403，所以那个 `-headers` 是必需的。
-
-而 kookvoice 里 ffmpeg 的命令行是写死的：
-
-    f'{ffmpeg_bin} -nostats -i "{file}" -filter:a volume=0.4 ...'
-
-`-i` 前面没有任何地方能塞自定义 header。这是整个移植里最硬的一堵墙。
-
-解决办法
---------
-在 127.0.0.1 上开一个极小的 HTTP 服务。塔菲把歌注册进来拿到一个
-`http://127.0.0.1:17650/s/<token>`，把这个地址交给 kookvoice；
+做法：在 127.0.0.1 上开一个极小的 HTTP 服务。塔菲把歌注册进来拿到一个
+`http://127.0.0.1:17650/s/<token>`，把这个地址交给 ffmpeg；
 ffmpeg 来拉这个地址时，中转再带着正确的 Referer / UA / Cookie
 去真正的 CDN 取流，然后把字节原样转回去。
 
-顺带解决了直链过期的问题：Discord 版要在播放前手动
-`_refresh_if_stale`，而这里是 ffmpeg 真正来取流的那一刻才去解析，
-过期了就当场重新解析一次，时机永远是对的。
+直链过期也在这里处理：ffmpeg 真正来取流的那一刻才检查，
+过期了就当场重新解析一次。
 """
 import asyncio
 import logging
@@ -58,11 +43,7 @@ def forget(token: str):
 
 
 async def _resolve_if_stale(song: dict) -> dict:
-    """直链有有效期，排队太久就重新解析一次。
-
-    这段逻辑和 Discord 版的 _refresh_if_stale 是一样的，
-    只是调用时机从"播放前"挪到了"ffmpeg 真的来取流时"。
-    """
+    """直链有有效期，排队太久就在 ffmpeg 来取流时重新解析一次。"""
     resolved_at = song.get('resolved_at', 0)
     if datetime.now().timestamp() - resolved_at < URL_REFRESH_AFTER:
         return song

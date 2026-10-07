@@ -1,10 +1,8 @@
 """音乐相关指令。
 
-移植要点
---------
-1. 没有 VoiceClient。连语音、推流都在 voice/player.py 里自己做，这里只管指令。
-2. 用户在哪个语音频道要打 API 查（Discord 是本地缓存的 user.voice.channel）。
-3. /search 的下拉选单变成一排编号按钮，KOOK 卡片没有 select。
+1. 连语音、推流都在 voice/player.py 里做，这里只管指令。
+2. 用户在哪个语音频道要打 API 查。
+3. /search 的结果是一排编号按钮，KOOK 卡片没有 select。
 4. /pause 和 /resume 做不了，原因见下面的注释。
 """
 import asyncio
@@ -59,11 +57,7 @@ async def _enqueue(bot, guild_id, voice_channel_id, text_channel_id, query):
 
 
 async def _announce(player, song):
-    """新的 player 在开始放一首歌时回调这里。
-
-    以前靠 kookvoice.on_event(Status.START)，那个回调跑在它自己的
-    事件循环里；现在播放循环就在主循环里，直接 await 就行。
-    """
+    """player 开始放一首歌时回调这里。"""
     if player.text_channel_id and _bot is not None:
         try:
             await send_text(_bot, player.text_channel_id,
@@ -153,7 +147,7 @@ def setup(bot: Bot):
 
     @bot.command(name='search')
     async def search(msg: Message, *args):
-        """Discord 版用 app_commands.Choice 做平台下拉，KOOK 没有，改成末尾关键词。"""
+        """平台用末尾关键词指定（bilibili / b站 / bili），不写就是 YouTube。"""
         args = list(args)
         platform_value = "youtube"
         if args and args[-1].lower() in ('bilibili', 'b站', 'bili'):
@@ -231,10 +225,8 @@ def setup(bot: Bot):
         await msg.reply(cards.now_playing_card(song, thumb))
 
     # ---- /pause 和 /resume ----
-    # kookvoice 的播放循环里没有暂停这个概念：ffmpeg 一路往 RTP 推，
-    # 只有 skip / stop 两种打断方式。库里的 seek() 理论上能拿来模拟，
-    # 但它依赖的 now_playing['ss'] 被写成了负值（上游的 bug），
-    # 按它跳转会跳到错误的位置。
+    # 播放循环里没有暂停这个概念：ffmpeg 一路往 RTP 推，
+    # 只有 skip / stop 两种打断方式。
     # 与其上线两个半残的指令，不如老实说做不到。
 
     @bot.command(name='pause')

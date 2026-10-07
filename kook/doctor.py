@@ -73,9 +73,6 @@ def check_deps():
             ok(f"{mod}")
         except ImportError:
             bad(f"{mod} 没装（{why}）", "pip install -r requirements.txt")
-    # kookvoice 已经不用了：它的推流循环有个竞态（写进缓冲区就当发完了，
-    # 然后立刻 kill ffmpeg），本地中转喂得太快时必然只响一瞬间。
-    # 现在 voice/player.py 自己起一个 ffmpeg 直接推 RTP。
 
 
 def check_logging():
@@ -219,7 +216,6 @@ async def check_channels():
             continue
 
         # Discord 的雪花 id 是 17-19 位，KOOK 的明显更短。
-        # 从 Discord 版搬过来时最容易忘的就是这两个 id。
         if cid.isdigit() and len(cid) >= 17:
             bad(f"{key}={cid} 看起来是 Discord 的频道 id（{len(cid)} 位）",
                 "KOOK 的频道 id 要在 KOOK 客户端里取："

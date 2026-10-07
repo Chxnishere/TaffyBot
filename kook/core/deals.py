@@ -1,4 +1,4 @@
-"""CheapShark 折扣查询。和平台无关，从 Discord 版原样搬来。"""
+"""CheapShark 折扣查询。和平台无关。"""
 import asyncio
 import logging
 import urllib.parse

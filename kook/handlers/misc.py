@@ -31,7 +31,7 @@ def setup(bot: Bot):
             avatar = me.avatar
         except Exception:
             pass
-        # Discord 版是 ephemeral，这里用 is_temp：只有发起者看得见
+        # is_temp：只有发起者看得见
         await msg.reply(cards.help_card(avatar), is_temp=True)
         logger.info(f"用户 {msg.author.username} 使用了 /help")
 

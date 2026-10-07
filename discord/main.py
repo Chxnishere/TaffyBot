@@ -143,7 +143,7 @@ WEATHER_CITIES = (parse_weather_cities(os.getenv('WEATHER_CITIES'))
 PLAY_ALLOWED_HOSTS = ('youtube.com', 'youtu.be', 'bilibili.com', 'b23.tv')
 
 # yt-dlp 每次解析完都会把 cookies.txt 整个重写一遍。
-# 两个解析同时跑、或者一边写一边读，读到的就是半个文件（实测并发时 25% 的读取不完整）。
+# 两个解析同时跑、或者一边写一边读，读到的就是半个文件。
 # 所以所有碰 cookies.txt 的地方都排这一把锁；用 RLock 是因为解析过程中还会回头读 cookie。
 _ytdl_lock = threading.RLock()
 
@@ -484,7 +484,7 @@ def get_song_data(query: str) -> dict:
         'max_sleep_interval': 10,
         'geo_bypass': True,
         'source_address': '0.0.0.0',
-        # 正确的 key 是 http_headers；原来写的 'headers' yt-dlp 根本不认
+        # key 必须是 http_headers，写成 'headers' yt-dlp 不认
         'http_headers': {'User-Agent': BROWSER_UA},
         'age_limit': 0,
     }
@@ -583,9 +583,8 @@ def get_cookies_for_domain(domain_suffix: str) -> str:
     return '; '.join(pairs)
 
 
-# 取流时用的基础请求头。注意这里**不要**写死 Referer：
-# 以前无论什么站都回落到 B 站的 Referer，还把整份 cookies.txt
-# （YouTube 和 B 站的登录态混在一起）发给了当前这首歌的 CDN。
+# 取流时用的基础请求头。注意这里**不要**写死 Referer，
+# 一个站的 Referer 和登录态不能发给另一个站的 CDN。
 BASE_HEADERS = {
     'User-Agent': BROWSER_UA,
     'Accept': '*/*',
