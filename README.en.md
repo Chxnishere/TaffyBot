@@ -169,6 +169,10 @@ Usage limits. The defaults are generous enough that a small server won't notice 
 
 The persona is three Markdown files in `discord/`: `persona.md`, `distillation.md` and `self-reference.md`. Rewrite them and restart, and the bot has a different personality. They are written in Chinese; in English mode the bot follows them but replies in English.
 
+## AI disclosure
+
+Parts of this project's code and documentation were written with the help of AI tools and reviewed & tested by the author before release.
+
 ## Credits
 
 - The persona files come from [ly-xxx/ace-taffy-skill](https://github.com/ly-xxx/ace-taffy-skill) (MIT license). The license notice is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
